@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.Python
+*.egg-info/
+.venv/
+
+# UV
+uv.lock
+
+# Database
+*.db
+*.sqlite
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Data files (optional - uncomment if you want to keep data private)
+# data/*.tsv
+# data/*.csv
