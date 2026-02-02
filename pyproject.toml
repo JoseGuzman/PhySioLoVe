@@ -1,5 +1,5 @@
 [project]
-name = "health-tracker"
+name = "physiolove"
 version = "0.1.0"
 description = "Personal health tracking dashboard"
 requires-python = ">=3.11"

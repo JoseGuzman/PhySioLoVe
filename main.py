@@ -1,5 +1,5 @@
 def main():
-    print("Hello from health-tracker!")
+    print("Hello from PhySioLoVe, a personal health-tracker!")
 
 
 if __name__ == "__main__":
