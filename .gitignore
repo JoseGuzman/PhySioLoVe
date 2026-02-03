@@ -30,6 +30,12 @@ uv.lock
 .idea/
 *.swp
 
+#=========================================================================
+# IDE
+#=========================================================================
+*.pdf
+
+
 # Data files (optional - uncomment if you want to keep data private)
 # data/*.tsv
 # data/*.csv

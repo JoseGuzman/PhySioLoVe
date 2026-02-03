@@ -71,6 +71,7 @@ uv sync
 ```
 
 This command will:
+
 - Create a virtual environment in `.venv/`
 - Install Flask, SQLAlchemy, and pandas
 - Create a `uv.lock` file for reproducible builds
@@ -88,6 +89,7 @@ cp ~/path/to/your/health_data.csv data/
 **Expected CSV format:**
 
 Your file should have these columns (names are flexible):
+
 - Date
 - Weight (kg)
 - Body Fat (%)
@@ -105,7 +107,7 @@ uv run python scripts/import_data.py data/health_data.csv
 
 You should see, for example:
 
-```
+```bash
 📊 Importing data from data/health_data.csv...
 
 📋 Found columns: ['Date', 'Weight (kg)', 'Body Fat (%)', ...]
@@ -127,7 +129,7 @@ uv run python app.py
 
 You should see:
 
-```
+```bash
 ✓ Database initialized
 
 🏃‍♂️ Health Tracker Starting...
@@ -136,9 +138,7 @@ You should see:
 
 ### Step 7: Open in Browser
 
-Open your web browser and navigate to:
-
-**http://localhost:5000**
+Open your web browser and navigate to:<http://localhost:5000>
 
 🎉 You should now see your health tracking dashboard!
 
@@ -147,6 +147,7 @@ Open your web browser and navigate to:
 ### Viewing Your Data
 
 The dashboard displays:
+
 - **Statistics Cards**: Average weight, body fat, calories, steps, total entries
 - **Weight & Body Fat Chart**: Interactive line chart showing trends over time
 - **Steps Chart**: Bar chart of daily step counts
@@ -204,7 +205,7 @@ uv sync --upgrade
 
 ## Project Structure
 
-```
+```bash
 physiolove/
 ├── app.py                  # Main Flask application
 ├── pyproject.toml          # Project configuration & dependencies
@@ -284,11 +285,11 @@ UV is a modern Python package manager that's:
 ### UV vs pip
 
 | Task | pip | UV |
-|------|-----|-----|
+| :--- | :--- | :--- |
 | Install deps | `pip install -r requirements.txt` (45s) | `uv sync` (2s) |
-| Activate venv | `source venv/bin/activate` | Not needed! |
+| Activate venv | `source venv/bin/activate` | Not needed |
 | Run script | `python app.py` | `uv run python app.py` |
-| Add package | `pip install pkg` + manual requirements.txt | `uv add pkg` (automatic) |
+| Add package | `pip install pkg` + manual `requirements.txt` | `uv add pkg` (automatic) |
 
 ## Development
 
@@ -307,6 +308,7 @@ uv run black .
 ## Data Privacy
 
 Your health data stays **local**:
+
 - Stored in `health_tracker.db` (SQLite database)
 - Never sent to any server
 - You have complete control
@@ -328,7 +330,7 @@ MIT License - Feel free to use and modify!
 
 ## Support
 
-Having issues? 
+Having issues?
 
 1. Check the [Troubleshooting](#troubleshooting) section
 2. Make sure UV is properly installed: `uv --version`
@@ -338,6 +340,7 @@ Having issues?
 ## Acknowledgments
 
 Built with:
+
 - [Flask](https://flask.palletsprojects.com/) - Web framework
 - [Plotly](https://plotly.com/javascript/) - Interactive charts
 - [UV](https://github.com/astral-sh/uv) - Fast package manager
