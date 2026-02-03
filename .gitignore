@@ -31,9 +31,10 @@ uv.lock
 *.swp
 
 #=========================================================================
-# IDE
+# misc
 #=========================================================================
 *.pdf
+.DS_Store
 
 
 # Data files (optional - uncomment if you want to keep data private)
