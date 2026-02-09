@@ -9,6 +9,7 @@ Usage: uv run python scripts/import_data.py data/health_data.csv
 """
 
 import sys
+from datetime import date as Date
 from datetime import datetime
 from pathlib import Path
 
@@ -79,14 +80,14 @@ def parse_time(time_str: str) -> float | None:
         minutes = int(parts[1])
         seconds = int(parts[2]) if len(parts) == 3 else 0
 
-        # Range guarantees
-        if hours < 0:
-            raise ValueError
-        if not (0 <= minutes < 60):
-            raise ValueError
-        if not (0 <= seconds < 60):
-            raise ValueError
-        
+        # check proper time guarantees
+        if 0 < hours > 24:
+            raise ValueError("Hours cannot be negative")
+        if 0 <= minutes >= 60:
+            raise ValueError("Minutes must be between 0 and 59")
+        if 0 <= seconds >= 60:
+            raise ValueError("Seconds must be between 0 and 59")
+
         return round(hours + minutes / 60 + seconds / 3600, 2)  # when everything works
 
     # catch 2: or 2:xx, to provide info on format
@@ -96,8 +97,33 @@ def parse_time(time_str: str) -> float | None:
         ) from exc
 
 
-def parse_number(value):
-    """Parse number with comma as decimal separator"""
+def parse_number(value: str) -> float | None:
+    """
+    Parse number with comma as decimal separator
+
+    Parameters
+    ----------
+    value : str
+        Number string in the format (e.g. '2,30' or '2,30').
+
+    Returns
+    -------
+    float or None
+        The number as floating point
+        Returns None for empty, NaN, or placeholder values ('--').
+
+    Raises
+    ------
+    ValueError
+        If the input string does not match the expected time format.
+
+    Examples
+    --------
+    >>> parse_number('2.3')
+    2.3
+
+    """
+
     if pd.isna(value) or value == "--" or value == "":
         return None
     try:
@@ -109,8 +135,18 @@ def parse_number(value):
     return None
 
 
-def parse_date(date_str):
-    """Parse date in various formats"""
+def parse_date(date_str: str) -> Date | None:
+    """
+    Parse a date string in common formats and return a `date`.
+
+    Accepts formats:
+    - dd/mm/YYYY
+    - YYYY-mm-dd
+    - mm/dd/YYYY
+    - dd-mm-YYYY
+
+    Returns None for NaN/empty/placeholder values or if parsing fails.
+    """
     if pd.isna(date_str) or date_str == "--" or date_str == "":
         return None
 
@@ -119,21 +155,40 @@ def parse_date(date_str):
     for fmt in formats:
         try:
             return datetime.strptime(str(date_str).strip(), fmt).date()
-        except:
+        except ValueError:
             continue
     return None
 
 
-def import_data(filepath):
-    """Import data from CSV/TSV file"""
+def import_data(filepath: str) -> float | None:
+    """
+    Imports health data from a CSV or TSV file into the database.
+    The file should have a 'Date' column and may include columns for
+    weight, body fat percentage, calories, steps, sleep total, sleep quality,
+    and observations. The function will attempt to map columns based on common keywords.
+
+    Parameters
+    ----------
+    filepath : str
+        The path to the CSV or TSV file containing health data.
+
+    Returns
+    -------
+    float or None
+        Total time in hours, rounded to two decimal places.
+        Returns None for empty, NaN, or placeholder values ('--').
+
+    Raises
+    ------
+    ValueError
+        If the input string does not match the expected time format.
+    """
+
+    # Import data from CSV/TSV file
     print(f"\n📊 Importing data from {filepath}...")
 
     # Detect separator (CSV or TSV)
-    if filepath.endswith(".tsv"):
-        sep = "\t"
-    else:
-        sep = ","
-
+    sep = "t" if filepath.endswith(".tsv") else ","
     # Read file
     df = pd.read_csv(filepath, sep=sep, encoding="utf-8")
 
@@ -222,7 +277,7 @@ def import_data(filepath):
 
             except Exception as e:
                 errors += 1
-                print(f"⚠️  Error on row {idx + 1}: {e}")
+                print(f"⚠️  Error on row {idx + 1}: {e}")  # type: ignore
                 continue
 
         db.session.commit()
@@ -242,9 +297,9 @@ if __name__ == "__main__":
         print("Example: uv run python scripts/import_data.py data/health_data.csv")
         sys.exit(1)
 
-    filepath = sys.argv[1]
-    if not Path(filepath).exists():
-        print(f"Error: File '{filepath}' not found")
+    myfilepath = sys.argv[1]
+    if not Path(myfilepath).exists():
+        print(f"Error: File '{myfilepath}' not found")
         sys.exit(1)
 
-    import_data(filepath)
+    import_data(filepath=myfilepath)
