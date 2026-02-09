@@ -227,7 +227,10 @@ def import_data(filepath: str) -> float | None:
     skipped = 0
     errors = 0
 
+    # Initalize database tables if they don't exits
     with app.app_context():
+        db.create_all()
+
         for idx, row in df.iterrows():
             try:
                 date = parse_date(row[column_map["date"]])
@@ -281,13 +284,13 @@ def import_data(filepath: str) -> float | None:
                 continue
 
         db.session.commit()
+        total = HealthEntry.query.count()
 
     print("✓ Import complete!")
     print(f"  • Added: {added} entries")
     print(f"  • Skipped: {skipped} entries (already exist)")
     print(f"  • Errors: {errors} entries (invalid data)")
 
-    total = HealthEntry.query.count()
     print(f"  • Total in database: {total}\n")
 
 
