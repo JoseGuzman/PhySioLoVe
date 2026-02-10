@@ -2,6 +2,12 @@
 PhySioLoVe: Health Tracker - Simple Flask Application
 App.py
 
+This is a multi-view Flask application that serves as a health tracker.
+It allows users to log daily health metrics such as weight, body fat percentage,
+calories consumed, steps taken, sleep duration, and quality.
+The application provides an API to create new entries and retrieve statistics based on
+the logged data.
+
 Author: Jose Guzman, sjm.guzman<at>gmail.com
 Created: Sun Jan 25 09:23:24 CET 2026
 """
@@ -21,7 +27,9 @@ app.config["SECRET_KEY"] = "dev-secret-key"
 db = SQLAlchemy(app)
 
 
+# =========================================================================
 # Database Model
+# =========================================================================
 class HealthEntry(db.Model):
     """This is the registry of the database
     Args:
@@ -62,11 +70,25 @@ class HealthEntry(db.Model):
         }
 
 
+# =========================================================================
 # Routes
+# =========================================================================
 #
 @app.route("/")
 def index():
     return render_template("index.html")
+
+
+@app.route("/overview")
+def overview():
+    """Overview page with stats and data entry form"""
+    return render_template("overview.html")
+
+
+@app.route("/visualizations")
+def visualizations():
+    """Visualizations page with charts"""
+    return render_template("visualizations.html")
 
 
 @app.route("/api/entries", methods=["GET", "POST"])

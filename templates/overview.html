@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Overview - Health Tracker{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>🏃‍♂️ Health Tracker</h1>
+    <p>Personal fitness tracker</p>
+</div>
+
+<div class="stats" id="stats">
+    <div class="stat-card">
+        <div class="stat-label">Loading...</div>
+        <div class="stat-value">--</div>
+    </div>
+</div>
+
+<div class="form-section">
+    <h2>Add New Entry</h2>
+    <form id="entryForm">
+        <div class="form-grid">
+            <div>
+                <label>Date</label>
+                <input type="date" id="date" required>
+            </div>
+            <div>
+                <label>Weight (kg)</label>
+                <input type="number" step="0.1" id="weight">
+            </div>
+            <div>
+                <label>Body Fat (%)</label>
+                <input type="number" step="0.1" id="bodyFat">
+            </div>
+            <div>
+                <label>Calories</label>
+                <input type="number" id="calories">
+            </div>
+            <div>
+                <label>Steps</label>
+                <input type="number" id="steps">
+            </div>
+            <div>
+                <label>Sleep (hours)</label>
+                <input type="number" step="0.1" id="sleep">
+            </div>
+        </div>
+        <button type="submit">Add Entry</button>
+    </form>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadStats() {
+        try {
+            const res = await fetch('/api/stats');
+            const stats = await res.json();
+            
+            document.getElementById('stats').innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-label">Avg Weight</div>
+                    <div class="stat-value">${stats.avg_weight || '--'} <span style="font-size: 0.5em; color: #888;">kg</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg Body Fat</div>
+                    <div class="stat-value">${stats.avg_body_fat || '--'}<span style="font-size: 0.5em; color: #888;">%</span></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg Calories</div>
+                    <div class="stat-value">${stats.avg_calories || '--'}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg Steps</div>
+                    <div class="stat-value">${Math.round(stats.avg_steps || 0).toLocaleString()}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Total Entries</div>
+                    <div class="stat-value">${stats.total_entries}</div>
+                </div>
+            `;
+        } catch (error) {
+            console.error('Error loading stats:', error);
+        }
+    }
+    
+    document.getElementById('entryForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const data = {
+            date: document.getElementById('date').value,
+            weight: parseFloat(document.getElementById('weight').value) || null,
+            body_fat: parseFloat(document.getElementById('bodyFat').value) || null,
+            calories: parseInt(document.getElementById('calories').value) || null,
+            steps: parseInt(document.getElementById('steps').value) || null,
+            sleep_total: parseFloat(document.getElementById('sleep').value) || null,
+        };
+        
+        try {
+            const res = await fetch('/api/entries', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            if (res.ok) {
+                alert('Entry added!');
+                e.target.reset();
+                loadStats();
+            } else {
+                alert('Error adding entry');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error adding entry');
+        }
+    });
+    
+    // Load data on page load
+    loadStats();
+</script>
+{% endblock %}
