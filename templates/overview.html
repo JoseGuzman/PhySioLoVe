@@ -5,7 +5,7 @@
 {% block content %}
 <div class="page-header">
     <h1>️Overview</h1>
-    <p>Basic fitness data</p>
+    <p>Basic fitness stats</p>
 </div>
 
 <div class="stats" id="stats">
@@ -28,18 +28,22 @@
             document.getElementById('stats').innerHTML = `
                 <div class="stat-card">
                     <div class="stat-label">Avg Weight</div>
-                    <div class="stat-value">${stats.avg_weight || '--'} <span style="font-size: 0.5em; color: #888;">kg</span></div>
+                    <div class="stat-value">${stats.avg_weight || '--'}<span style="font-size: 0.5em; color: #888;">kg</span></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Avg Body Fat</div>
-                    <div class="stat-value">${stats.avg_body_fat || '--'}<span style="font-size: 0.5em; color: #888;">%</span></div>
+                    <div class="stat-value">${stats.avg_body_fat || '--'}<span style="font-size: 0.5em; color: #888;"> %</span></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Avg Calories</div>
-                    <div class="stat-value">${stats.avg_calories || '--'}</div>
+                    <div class="stat-value">${stats.avg_calories || '--'}<span style="font-size: 0.5em; color: #888;">kcal</span></div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Avg Steps</div>
+                    <div class="stat-value">${Math.round(stats.avg_steps || 0).toLocaleString()}</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Avg Sleep</div>
                     <div class="stat-value">${Math.round(stats.avg_steps || 0).toLocaleString()}</div>
                 </div>
                 <div class="stat-card">

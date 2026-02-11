@@ -110,6 +110,12 @@ def coach():
     """Connection to the coach page with personalized recommendations based on user data"""
     return render_template("coach.html")
 
+@app.route("/test")
+def test():
+    """To test html rendering and API connectivity"""
+    return render_template("test.html")
+
+
 
 # =========================================================================
 # API Routes (Protected)
