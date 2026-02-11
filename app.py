@@ -78,12 +78,13 @@ class HealthEntry(db.Model):
 
 
 # =========================================================================
-# Routes
+# Main App Routes (protected)
 # =========================================================================
 #
 @app.route("/")
 def index():
-    return render_template("index.html")
+    """Redirect to overview if logged in, otherwise to login page"""
+    return render_template("overview.html")
 
 
 @app.route("/overview")
@@ -110,6 +111,9 @@ def coach():
     return render_template("coach.html")
 
 
+# =========================================================================
+# API Routes (Protected)
+# =========================================================================
 @app.route("/api/entries", methods=["GET", "POST"])
 def entries():
     if request.method == "POST":
