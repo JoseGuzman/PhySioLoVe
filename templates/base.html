@@ -6,7 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Health Tracker{% endblock %}</title>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-
+    <!-- Lucide icons, clean outlines, like ChatGPT-->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <!-- CSS style -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 
@@ -26,14 +27,14 @@
                 <li>
                     <a href="{{ url_for('overview') }}"
                         class="{% if request.endpoint == 'overview' %}active{% endif %}">
-                        <span class="icon">📊</span>
-                        Overview
+                        <i data-lucide="bar-chart-3" class="icon"></i>
+                        <span>Overview</span>
                     </a>
                 </li>
                 <li>
                     <a href="{{ url_for('trends') }}" class="{% if request.endpoint == 'trends' %}active{% endif %}">
-                        <span class="icon">📈</span>
-                        Trends
+                        <i data-lucide="line-chart" class="icon"></i>
+                        <span>Trends</span>
                     </a>
                 </li>
             </ul>
@@ -44,8 +45,8 @@
             <ul class="sidebar-menu">
                 <li>
                     <a href="#" class="{% if request.endpoint == 'data_entry' %}active{% endif %}">
-                        <span class="icon">✏️</span>
-                        Data Entry
+                        <i data-lucide="pencil" class="icon"></i>
+                        <span>Data Entry</span>
                     </a>
                 </li>
             </ul>
@@ -62,6 +63,10 @@
     {% block scripts %}{% endblock %}
     <!-- Plotly behavior -->
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <!-- Initialize Lucide Icons -->
+    <script>
+        lucide.createIcons();
+    </script>
 
 </body>
 
