@@ -1,7 +1,26 @@
 // static/js/dashboard.js
+// this here is to match Plottly background to chart background 
+function cssVar(name, fallback) {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback;
+}
+
+const CARD_BG = cssVar('--panel', '#252525');
+
+const BASE_LAYOUT = {
+    paper_bgcolor: CARD_BG,
+    plot_bgcolor: CARD_BG,
+    font: { color: '#e0e0e0' },
+    hovermode: 'x unified',
+    showlegend: false,
+    margin: { t: 20, r: 20, b: 60, l: 60 },
+    xaxis: { gridcolor: '#2e2e2e', zerolinecolor: '#2e2e2e' },
+    yaxis: { gridcolor: '#2e2e2e', zerolinecolor: '#2e2e2e' }
+};
+
 
 // -----------------------------
-// Config
+// Config constants
 // -----------------------------
 const MYCOLORS = {
     weight: {
@@ -24,14 +43,7 @@ const MYCOLORS = {
 };
 const CHART_IDS = ['weightChart', 'bodyFatChart', 'stepsChart', 'sleepChart'];
 
-const BASE_LAYOUT = {
-    paper_bgcolor: '#252525', // card background
-    plot_bgcolor: '#252525',//plot_bgcolor: '#202020',
-    font: { color: '#e0e0e0' },
-    hovermode: 'x unified',
-    showlegend: false,
-    margin: { t: 20, r: 20, b: 60, l: 60 }
-};
+
 
 const PLOTLY_CONFIG = {
     responsive: true,
