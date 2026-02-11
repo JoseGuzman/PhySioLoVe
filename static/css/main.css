@@ -405,4 +405,102 @@ button:hover {
         top: 12px;
         bottom: 12px;
     }
+
+    /* =========================
+   AI Coach Chat UI
+========================= */
+
+    .coach-container {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+
+        display: flex;
+        flex-direction: column;
+
+        height: calc(100vh - 220px);
+        max-height: 720px;
+    }
+
+    /* Chat window */
+
+    .chat-window {
+        flex: 1;
+        padding: 18px;
+
+        overflow-y: auto;
+
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    /* Messages */
+
+    .chat-message {
+        display: flex;
+        max-width: 75%;
+    }
+
+    .chat-message.user {
+        align-self: flex-end;
+    }
+
+    .chat-message.bot {
+        align-self: flex-start;
+    }
+
+    .bubble {
+        padding: 10px 14px;
+        border-radius: 12px;
+
+        font-size: 0.95em;
+        line-height: 1.4;
+
+        white-space: pre-line;
+    }
+
+    /* User bubble */
+
+    .chat-message.user .bubble {
+        background: var(--accent);
+        color: #0b0b0b;
+        border-bottom-right-radius: 4px;
+    }
+
+    /* Bot bubble */
+
+    .chat-message.bot .bubble {
+        background: #222;
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-bottom-left-radius: 4px;
+    }
+
+    /* Input bar */
+
+    .chat-input-bar {
+        display: flex;
+        gap: 10px;
+
+        padding: 14px;
+        border-top: 1px solid var(--border);
+        background: #111;
+    }
+
+    .chat-input-bar input {
+        flex: 1;
+        padding: 10px 12px;
+
+        border-radius: 8px;
+        border: 1px solid var(--border-2);
+
+        background: #121212;
+        color: var(--text);
+    }
+
+    .chat-input-bar button {
+        padding: 10px 16px;
+        border-radius: 8px;
+    }
 }

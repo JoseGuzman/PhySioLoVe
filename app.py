@@ -104,6 +104,12 @@ def entry():
     return render_template("entry.html")
 
 
+@app.route("/coach")
+def coach():
+    """Connection to the coach page with personalized recommendations based on user data"""
+    return render_template("coach.html")
+
+
 @app.route("/api/entries", methods=["GET", "POST"])
 def entries():
     if request.method == "POST":
