@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}AI Coach - Physiolog{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>AI Coach</h1>
+    <p>Your personal health and performance assistant</p>
+</div>
+
+<div class="coach-container">
+
+    <!-- Chat window -->
+    <div id="chatWindow" class="chat-window">
+
+        <!-- System / welcome message -->
+        <div class="chat-message bot">
+            <div class="bubble">
+                👋 Hi! I’m your AI Coach.<br>
+                Ask me about your progress, habits, or goals.
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Input bar -->
+    <form id="chatForm" class="chat-input-bar">
+
+        <input type="text" id="chatInput" placeholder="Ask your coach..." autocomplete="off" required />
+
+        <button type="submit">Send</button>
+
+    </form>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    /*
+      Dummy chat interface.
+      Replace later with real API calls.
+    */
+
+    const chatWindow = document.getElementById('chatWindow');
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+
+    function addMessage(text, sender = 'user') {
+        const msg = document.createElement('div');
+        msg.className = `chat-message ${sender}`;
+
+        const bubble = document.createElement('div');
+        bubble.className = 'bubble';
+        bubble.textContent = text;
+
+        msg.appendChild(bubble);
+        chatWindow.appendChild(msg);
+
+        // Auto-scroll
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    // Fake bot response (placeholder)
+    function fakeBotReply(userText) {
+        return `I’m still learning 😊  
+Soon I’ll analyze your data and give personalized advice.`;
+    }
+
+    chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const text = chatInput.value.trim();
+        if (!text) return;
+
+        // Add user message
+        addMessage(text, 'user');
+        chatInput.value = '';
+
+        // Simulate thinking delay
+        setTimeout(() => {
+            const reply = fakeBotReply(text);
+            addMessage(reply, 'bot');
+        }, 600);
+    });
+</script>
+{% endblock %}

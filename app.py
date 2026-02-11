@@ -98,6 +98,12 @@ def trends():
     return render_template("trends.html")
 
 
+@app.route("/entry")
+def entry():
+    """Data entry page with form to add new health metrics"""
+    return render_template("entry.html")
+
+
 @app.route("/api/entries", methods=["GET", "POST"])
 def entries():
     if request.method == "POST":

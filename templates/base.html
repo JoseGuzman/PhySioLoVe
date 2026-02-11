@@ -47,7 +47,7 @@
             <div class="sidebar-section-title">MANAGE</div>
             <ul class="sidebar-menu">
                 <li>
-                    <a href="#" class="{% if request.endpoint == 'data_entry' %}active{% endif %}">
+                    <a href="{{ url_for('entry') }}" class="{% if request.endpoint == 'entry' %}active{% endif %}">
                         <i data-lucide="pencil" class="icon"></i>
                         <span>Data Entry</span>
                     </a>
@@ -71,10 +71,11 @@
     </main>
 
     {% block scripts %}{% endblock %}
+
+    <!-- Lucide icons, clean outlines, like ChatGPT-->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Plotly behavior -->
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-    <!-- Lucide icons, clean outlines, like ChatGPT-->
-    <script src="https://unpkg.com/lucide@latest"></script>>
     <script>
         lucide.createIcons();
     </script>
