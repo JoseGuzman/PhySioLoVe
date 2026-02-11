@@ -93,6 +93,11 @@
         }
 
         /* Main Content Styles */
+        .content-wrapper {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
         .main-content {
             margin-left: 220px;
             flex: 1;
@@ -105,7 +110,7 @@
             border-radius: 12px;
             padding: 25px 30px;
             margin-bottom: 25px;
-            border: 1px solid #cccccc;
+            border: 1px solid #333;
         }
 
         .page-header h1 {
@@ -128,7 +133,7 @@
 
         .stat-card {
             background: #252525;
-            border: 1px solid #cccccc;
+            border: 1px solid #333;
             border-radius: 12px;
             padding: 20px;
         }
@@ -150,7 +155,7 @@
         /* Block charts */
         .chart {
             background: #252525;
-            border: 1px solid #999999;
+            border: 1px solid #333;
             border-radius: 12px;
             padding: 10px;
             margin-bottom: 10px;
@@ -173,6 +178,7 @@
             color: #fff;
             font-size: 1.2em;
             margin-bottom: 20px;
+            border: 1px solid #333;
         }
 
         .form-grid {
@@ -243,6 +249,27 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #4a4a4a;
         }
+
+        /* laptop/mobile becomes icon-only sidebar */
+        @media (max-width: 900px) {
+            .sidebar {
+                width: 60px;
+            }
+
+            .main-content {
+                margin-left: 60px;
+                width: calc(100% - 60px);
+            }
+
+            .sidebar-menu a span:not(.icon) {
+                display: none;
+            }
+
+            .sidebar-header h2 {
+                font-size: 0.7em;
+                text-align: center;
+            }
+        }
     </style>
     {% block extra_styles %}{% endblock %}
 </head>
@@ -287,12 +314,25 @@
         </div>
     </aside>
 
-    <!-- Main Content -->
+    <!-- Main Content: Global Content Container -->
     <main class="main-content">
-        {% block content %}{% endblock %}
+        <div class="content-wrapper">
+            {% block content %}{% endblock %}
+        </div>
     </main>
 
-    {% block scripts %}{% endblock %}
+    <!-- Standarize Plotly behavior -->
+    {% block scripts %}
+    const PLOTLY_CONFIG = {
+    responsive: true,
+    displaylogo: false,
+    modeBarButtonsToRemove: [
+    'select2d',
+    'lasso2d'
+    ]
+    };
+
+    {% endblock %}
 </body>
 
 </html>
