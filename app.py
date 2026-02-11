@@ -13,11 +13,18 @@ Created: Sun Jan 25 09:23:24 CET 2026
 """
 
 from datetime import datetime
+from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request
 from flask_sqlalchemy import SQLAlchemy
 
-app = Flask(__name__)
+BASE_DIR = Path(__file__).resolve().parent
+app = Flask(
+    __name__,
+    static_folder=str(BASE_DIR / "static"),
+    template_folder=str(BASE_DIR / "templates"),
+    static_url_path="/static",
+)
 
 # Configuration to read physiolove.db SQLite database
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///physiolove.db"
