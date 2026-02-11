@@ -3,6 +3,25 @@
 // -----------------------------
 // Config
 // -----------------------------
+const MYCOLORS = {
+    weight: {
+        dots: '#2dd4bf',   // teal
+        line: '#fb7185',   // rose
+    },
+    fat: {
+        dots: '#38bdf8',   // sky blue
+        line: '#fb923c',   // soft orange
+    },
+
+    steps: {
+        main: '#22c55e',   // emerald
+        line: '#fb7185',   // rose
+    },
+    sleep: {
+        main: '#a78bfa',   // lavender
+        line: '#fb923c',   // soft orange
+    }
+};
 const CHART_IDS = ['weightChart', 'bodyFatChart', 'stepsChart', 'sleepChart'];
 
 const BASE_LAYOUT = {
@@ -21,13 +40,23 @@ const PLOTLY_CONFIG = {
     modeBarButtonsToRemove: ['lasso2d', 'select2d'],
 };
 
-
 // Store latest date so global range buttons anchor correctly
 let LATEST_DATE_ISO = null;
 
 // -----------------------------
 // Utilities
 // -----------------------------
+/**
+ * HEX->RGBA to do soft transparency
+ */
+function hexToRgba(hex, alpha = 1) {
+    const h = hex.replace('#', '');
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 /**
  * Calculates moving average over numeric array.
  */
@@ -183,7 +212,7 @@ async function loadCharts() {
     if (dates.length) LATEST_DATE_ISO = dates[dates.length - 1];
 
     // -----------------------------
-    // Weight
+    // Weight 
     // -----------------------------
     if (document.getElementById('weightChart')) {
         const weightData = entries.map(e => e.weight);
@@ -196,14 +225,15 @@ async function loadCharts() {
                 name: 'Daily Weight',
                 type: 'scatter',
                 mode: 'markers',
-                marker: { size: 6, opacity: 0.5 }
+                marker: { opacity: 0.6, line: { width: 0 }, color: MYCOLORS.weight.dots }
             },
             {
                 x: dates,
                 y: weightMA,
                 name: '7-Day Average',
                 type: 'scatter',
-                mode: 'lines'
+                mode: 'lines',
+                line: { width: 2, color: MYCOLORS.weight.line }
             }
         ], {
             ...BASE_LAYOUT,
@@ -233,14 +263,14 @@ async function loadCharts() {
                 name: 'Daily Body Fat',
                 type: 'scatter',
                 mode: 'markers',
-                marker: { size: 6, opacity: 0.5 }
+                marker: { opacity: 0.6, line: { width: 0 }, color: MYCOLORS.fat.dots }
             },
             {
                 x: dates,
                 y: bfMA,
                 name: '7-Day Average',
                 type: 'scatter',
-                mode: 'lines'
+                line: { width: 2, color: MYCOLORS.fat.line }
             }
         ], {
             ...BASE_LAYOUT,
@@ -263,17 +293,23 @@ async function loadCharts() {
                 y: stepsData,
                 name: 'Daily Steps',
                 type: 'bar',
-                opacity: 0.6
+                marker: {
+                    color: hexToRgba(MYCOLORS.steps.main, 0.35), // ✅ soft fill
+                    line: { width: 0 }                           // ✅ no harsh edges
+                },
+                hovertemplate: '%{x}<br>Steps: %{y}<extra></extra>'
             },
             {
                 x: dates,
                 y: stepsMA,
                 name: '7-Day Average',
                 type: 'scatter',
-                mode: 'lines'
+                mode: 'lines',
+                line: { width: 2, color: MYCOLORS.steps.line }
             }
         ], {
             ...BASE_LAYOUT,
+            bargap: 0.15,
             yaxis: { title: 'Steps', linecolor: '#888', tickcolor: '#888' },
             xaxis: { ...makeXAxis(-30), linecolor: '#888', tickcolor: '#888' },
         }, PLOTLY_CONFIG);
@@ -292,14 +328,19 @@ async function loadCharts() {
                 y: sleepData,
                 name: 'Daily Sleep',
                 type: 'bar',
-                opacity: 0.6
+                marker: {
+                    color: hexToRgba(MYCOLORS.sleep.main, 0.35),
+                    line: { width: 0 }
+                },
+                hovertemplate: '%{x}<br>Sleep: %{y:.1f} h<extra></extra>'
             },
             {
                 x: dates,
                 y: sleepMA,
                 name: '7-Day Average',
                 type: 'scatter',
-                mode: 'lines'
+                mode: 'lines',
+                line: { width: 2, color: MYCOLORS.sleep.line }
             }
         ], {
             ...BASE_LAYOUT,
