@@ -6,8 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Health Tracker{% endblock %}</title>
     <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
-    <!-- Lucide icons, clean outlines, like ChatGPT-->
-    <script src="https://unpkg.com/lucide@latest"></script>
+
     <!-- CSS style -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
 
@@ -18,8 +17,12 @@
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-header">
-            <h2>🏃‍♂️ HEALTH</h2>
+            <h2 class="brand">
+                <i data-lucide="activity" class="icon"></i>
+                PHYSIOLOG
+            </h2>
         </div>
+
 
         <div class="sidebar-section">
             <div class="sidebar-section-title">TRACK</div>
@@ -63,7 +66,8 @@
     {% block scripts %}{% endblock %}
     <!-- Plotly behavior -->
     <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-    <!-- Initialize Lucide Icons -->
+    <!-- Lucide icons, clean outlines, like ChatGPT-->
+    <script src="https://unpkg.com/lucide@latest"></script>>
     <script>
         lucide.createIcons();
     </script>

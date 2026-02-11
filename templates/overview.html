@@ -4,8 +4,8 @@
 
 {% block content %}
 <div class="page-header">
-    <h1>🏃‍♂️ Health Tracker</h1>
-    <p>Personal fitness tracker</p>
+    <h1>️Overview</h1>
+    <p>Basic fitness data</p>
 </div>
 
 <div class="stats" id="stats">
@@ -55,7 +55,7 @@
         try {
             const res = await fetch('/api/stats');
             const stats = await res.json();
-            
+
             document.getElementById('stats').innerHTML = `
                 <div class="stat-card">
                     <div class="stat-label">Avg Weight</div>
@@ -82,10 +82,10 @@
             console.error('Error loading stats:', error);
         }
     }
-    
+
     document.getElementById('entryForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        
+
         const data = {
             date: document.getElementById('date').value,
             weight: parseFloat(document.getElementById('weight').value) || null,
@@ -94,14 +94,14 @@
             steps: parseInt(document.getElementById('steps').value) || null,
             sleep_total: parseFloat(document.getElementById('sleep').value) || null,
         };
-        
+
         try {
             const res = await fetch('/api/entries', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
             });
-            
+
             if (res.ok) {
                 alert('Entry added!');
                 e.target.reset();
@@ -114,7 +114,7 @@
             alert('Error adding entry');
         }
     });
-    
+
     // Load data on page load
     loadStats();
 </script>
