@@ -1,94 +1,310 @@
 {% extends "base.html" %}
 
-{% block title %}Overview - Health Tracker{% endblock %}
+{% block title %}Overview - Physiolog{% endblock %}
+
+{% block extra_styles %}
+<style>
+    .overview-grid {
+        display: grid;
+        grid-template-columns: 420px 1fr;
+        gap: 16px;
+        align-items: start;
+    }
+
+    @media (max-width: 1100px) {
+        .overview-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 18px;
+    }
+
+    .panel h2 {
+        font-size: 1.05em;
+        font-weight: 700;
+        margin-bottom: 12px;
+    }
+
+    .panel small {
+        color: var(--muted);
+    }
+
+    .inputs-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+    }
+
+    .inputs-grid .full {
+        grid-column: 1 / -1;
+    }
+
+    /* Results blocks (blue/green/orange like your sheet) */
+    .results-grid {
+        display: grid;
+        gap: 14px;
+    }
+
+    .result-block {
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        padding: 14px;
+    }
+
+    .result-block.blue {
+        background: rgba(56, 189, 248, 0.10);
+        border-color: rgba(56, 189, 248, 0.25);
+    }
+
+    .result-block.green {
+        background: rgba(34, 197, 94, 0.10);
+        border-color: rgba(34, 197, 94, 0.25);
+    }
+
+    .result-block.orange {
+        background: rgba(251, 146, 60, 0.10);
+        border-color: rgba(251, 146, 60, 0.25);
+    }
+
+    .result-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        padding: 10px 0;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .result-row:first-of-type {
+        border-top: 0;
+    }
+
+    .result-label {
+        color: var(--muted);
+        font-weight: 650;
+    }
+
+    .result-value {
+        font-weight: 800;
+        letter-spacing: -0.01em;
+    }
+
+    .result-big {
+        font-size: 1.4em;
+    }
+
+    .minmax {
+        display: flex;
+        gap: 12px;
+        color: var(--muted);
+        font-size: 0.9em;
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
-    <h1>️Overview</h1>
-    <p>Basic fitness stats</p>
+    <h1>Overview</h1>
+    <p>All values are estimates and should be interpreted in context. </p>
 </div>
 
-<div class="stats" id="stats">
-    <div class="stat-card">
-        <div class="stat-label">Loading...</div>
-        <div class="stat-value">--</div>
+<div class="overview-grid">
+
+    <!-- LEFT: Inputs -->
+    <div class="panel">
+        <h2>Inputs</h2>
+        <small>Update values to refresh the recommendations.</small>
+
+        <form id="tdeeForm" style="margin-top: 14px;">
+            <div class="inputs-grid">
+                <div>
+                    <label>Age (years)</label>
+                    <input type="number" id="age" min="0" step="1" value="49">
+                </div>
+
+                <div>
+                    <label>Height (cm)</label>
+                    <input type="number" id="height" min="0" step="1" value="169">
+                </div>
+
+                <div>
+                    <label>Weight (kg)</label>
+                    <input type="number" id="tdeeWeight" min="0" step="0.1" value="70">
+                </div>
+
+                <div>
+                    <label>Gender</label>
+                    <select id="gender">
+                        <option value="male" selected>Male</option>
+                        <option value="female">Female</option>
+                    </select>
+                </div>
+
+                <div class="full">
+                    <label>Activity</label>
+                    <select id="activity">
+                        <option value="1.2">Sedentary (0–1 days/week)</option>
+                        <option value="1.375">Light (2–3 days/week)</option>
+                        <option value="1.55">Moderate (3–5 days/week)</option>
+                        <option value="1.7" selected>High (6–7 days/week)</option>
+                        <option value="1.9">Very high (2x/day)</option>
+                    </select>
+                </div>
+
+                <div class="full">
+                    <button type="button" id="recalcBtn">Recalculate</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- RIGHT: Results -->
+    <div class="results-grid">
+
+        <!-- BMR / TDEE -->
+        <div class="result-block blue">
+            <h2 style="margin-bottom: 6px;">Metabolism</h2>
+
+            <div class="result-row">
+                <div class="result-label">Basal Metabolic Rate (BMR)</div>
+                <div class="result-value result-big"><span id="bmrOut">—</span> kcal/day</div>
+            </div>
+
+            <div class="result-row">
+                <div class="result-label">
+                    Total Daily Energy Expenditure (TDEE)
+                    <div class="minmax">
+                        <span>min: <span id="tdeeMinOut">—</span></span>
+                        <span>max: <span id="tdeeMaxOut">—</span></span>
+                    </div>
+                </div>
+                <div class="result-value result-big"><span id="tdeeOut">—</span> kcal/day</div>
+            </div>
+
+            <div class="result-row">
+                <div class="result-label">Activity factor</div>
+                <div class="result-value"><span id="activityOut">—</span></div>
+            </div>
+
+        </div>
+
+        <!-- Weight loss -->
+        <div class="result-block green">
+            <h2 style="margin-bottom: 6px;">Weight Loss</h2>
+
+            <div class="result-row">
+                <div class="result-label">
+                    Calories (deficit)
+                    <div class="minmax">
+                        <span>min: <span id="cutMinOut">—</span></span>
+                        <span>max: <span id="cutMaxOut">—</span></span>
+                    </div>
+                </div>
+                <div class="result-value result-big"><span id="cutCaloriesOut">—</span> kcal/day</div>
+            </div>
+
+            <div class="result-row">
+                <div class="result-label">Protein (g/day)</div>
+                <div class="result-value result-big"><span id="cutProteinOut">—</span> g</div>
+            </div>
+        </div>
+
+        <!-- Lean bulk -->
+        <div class="result-block orange">
+            <h2 style="margin-bottom: 6px;">Lean Bulk</h2>
+
+            <div class="result-row">
+                <div class="result-label">
+                    Calories (surplus)
+                    <div class="minmax">
+                        <span>min: <span id="bulkMinOut">—</span></span>
+                        <span>max: <span id="bulkMaxOut">—</span></span>
+                    </div>
+                </div>
+                <div class="result-value result-big"><span id="bulkCaloriesOut">—</span> kcal/day</div>
+            </div>
+
+            <div class="result-row">
+                <div class="result-label">Protein (g/day)</div>
+                <div class="result-value result-big"><span id="bulkProteinOut">—</span> g</div>
+            </div>
+        </div>
+
     </div>
 </div>
-
-
 {% endblock %}
 
 {% block scripts %}
 <script>
-    async function loadStats() {
-        try {
-            const res = await fetch('/api/stats');
-            const stats = await res.json();
+    // Dummy placeholders for now.
+    // When you give me the formulas, we’ll replace this with real calculations.
 
-            document.getElementById('stats').innerHTML = `
-                <div class="stat-card">
-                    <div class="stat-label">Avg Weight</div>
-                    <div class="stat-value">${stats.avg_weight || '--'}<span style="font-size: 0.5em; color: #888;">kg</span></div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Avg Body Fat</div>
-                    <div class="stat-value">${stats.avg_body_fat || '--'}<span style="font-size: 0.5em; color: #888;"> %</span></div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Avg Calories</div>
-                    <div class="stat-value">${stats.avg_calories || '--'}<span style="font-size: 0.5em; color: #888;">kcal</span></div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Avg Steps</div>
-                    <div class="stat-value">${Math.round(stats.avg_steps || 0).toLocaleString()}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Avg Sleep</div>
-                    <div class="stat-value">${Math.round(stats.avg_steps || 0).toLocaleString()}</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Total Entries</div>
-                    <div class="stat-value">${stats.total_entries}</div>
-                </div>
-            `;
-        } catch (error) {
-            console.error('Error loading stats:', error);
+    function setText(id, val) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    }
+
+    function calculateBMR(weight, height, age, gender) {
+        if (gender === 'male') {
+            return (10 * weight) + (6.25 * height) - (5 * age) + 5;
+        } else {
+            return (10 * weight) + (6.25 * height) - (5 * age) - 161;
         }
     }
 
-    document.getElementById('entryForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
+    function round(n) {
+        return Math.round(n);
+    }
 
-        const data = {
-            date: document.getElementById('date').value,
-            weight: parseFloat(document.getElementById('weight').value) || null,
-            body_fat: parseFloat(document.getElementById('bodyFat').value) || null,
-            calories: parseInt(document.getElementById('calories').value) || null,
-            steps: parseInt(document.getElementById('steps').value) || null,
-            sleep_total: parseFloat(document.getElementById('sleep').value) || null,
-        };
+    function recalc() {
 
-        try {
-            const res = await fetch('/api/entries', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
+        const age = parseFloat(document.getElementById('age').value);
+        const height = parseFloat(document.getElementById('height').value);
+        const weight = parseFloat(document.getElementById('tdeeWeight').value);
 
-            if (res.ok) {
-                alert('Entry added!');
-                e.target.reset();
-                loadStats();
-            } else {
-                alert('Error adding entry');
-            }
-        } catch (error) {
-            console.error('Error:', error);
-            alert('Error adding entry');
-        }
-    });
+        const gender = document.getElementById('gender').value;
+        const activity = parseFloat(document.getElementById('activity').value);
 
-    // Load data on page load
-    loadStats();
+        if (!age || !height || !weight) return;
+
+        // ---- BMR ----
+        const bmr = calculateBMR(weight, height, age, gender);
+
+        // ---- TDEE ----
+        const tdee = bmr * activity;
+
+        // ---- Display ----
+        setText('bmrOut', round(bmr));
+        setText('tdeeOut', round(tdee));
+
+        setText('activityOut', activity.toFixed(2));
+
+        // Simple range (+/- 2.5%)
+        const min = tdee * 0.95;
+        const max = tdee * 1.05;
+
+        setText('tdeeMinOut', round(min));
+        setText('tdeeMaxOut', round(max));
+
+        // TEMP placeholders (next step)
+        setText('cutCaloriesOut', '—');
+        setText('cutMinOut', '—');
+        setText('cutMaxOut', '—');
+        setText('cutProteinOut', '—');
+
+        setText('bulkCaloriesOut', '—');
+        setText('bulkMinOut', '—');
+        setText('bulkMaxOut', '—');
+        setText('bulkProteinOut', '—');
+    }
+
+    // listeners
+    document.getElementById('recalcBtn')?.addEventListener('click', recalc);
+    document.addEventListener('DOMContentLoaded', recalc);
+
 </script>
 {% endblock %}
