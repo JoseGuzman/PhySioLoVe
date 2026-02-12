@@ -18,7 +18,10 @@ from pathlib import Path
 from flask import Flask, jsonify, render_template, request
 from flask_sqlalchemy import SQLAlchemy
 
+from config import Config
+
 BASE_DIR = Path(__file__).resolve().parent
+
 app = Flask(
     __name__,
     static_folder=str(BASE_DIR / "static"),
@@ -26,10 +29,7 @@ app = Flask(
     static_url_path="/static",
 )
 
-# Configuration to read physiolog.db SQLite database
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///physiolog.db"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SECRET_KEY"] = "dev-secret-key"
+app.config.from_object(Config)
 
 db = SQLAlchemy(app)
 
@@ -110,10 +110,16 @@ def coach():
     """Connection to the coach page with personalized recommendations based on user data"""
     return render_template("coach.html")
 
+
 @app.route("/test")
 def test():
     """To test html rendering and API connectivity"""
     return render_template("test.html")
+
+
+# =========================================================================
+# Authentication routes
+# =========================================================================
 
 
 # =========================================================================
@@ -176,6 +182,8 @@ with app.app_context():
     print("✓ Database initialized")
 
 if __name__ == "__main__":
-    print("\n🏃‍♂️ Health Tracker Starting...")
+    # when running locally with uv run python app.py, 
+    # the app will be available at http://localhost:5000
+    print("\n🏃‍♂️ Physiolog Starting...")
     print("📊 Visit: http://localhost:5000\n")
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0", port=5000)

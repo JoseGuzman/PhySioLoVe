@@ -228,20 +228,93 @@ physiolog/
 └── physiolog.db           # SQLite database (auto-created)
 ```
 
+## � Production Deployment
+
+### Run Locally with Gunicorn
+
+Gunicorn is a production-grade WSGI server. To run locally:
+
+```bash
+uv run gunicorn -w 2 -b 127.0.0.1:8000 app:app
+```
+
+Then open your browser to <http://127.0.0.1:8000>
+
+### Run on EC2 (Public Binding)
+
+To deploy on AWS EC2 with Gunicorn binding to all interfaces:
+
+```bash
+uv run gunicorn -w 2 -b 0.0.0.0:8000 app:app
+```
+
+**Important:** Make sure your EC2 security group allows inbound traffic on port 8000.
+
+### Recommended Gunicorn Configuration
+
+For production environments, use this configuration with additional logging and timeout settings:
+
+```bash
+uv run gunicorn app:app \
+  -w 2 \
+  -b 0.0.0.0:8000 \
+  --access-logfile - \
+  --error-logfile - \
+  --timeout 60
+```
+
+**Parameters explained:**
+
+- `-w 2` → 2 worker processes (adjust based on CPU cores)
+- `-b 0.0.0.0:8000` → Bind to all interfaces on port 8000
+- `--access-logfile -` → Log access to stdout
+- `--error-logfile -` → Log errors to stdout
+- `--timeout 60` → Prevent premature worker restarts (seconds)
+
 ## 🐳 Docker Deployment (Coming Soon)
 
-Preparing for deployment on AWS:
+Preparing for containerized deployment on AWS:
 
 ```dockerfile
 FROM python:3.11-slim
 WORKDIR /app
 COPY . .
 RUN pip install uv && uv sync
-EXPOSE 5000
-CMD ["uv", "run", "python", "app.py"]
+EXPOSE 8000
+CMD ["uv", "run", "gunicorn", "app:app", "-w 2", "-b 0.0.0.0:8000"]
 ```
 
-## 🔧 Common Commands
+## � Environment Variables
+
+### Local Development
+
+Create a `.env` file in the project root:
+
+```bash
+SECRET_KEY=super-secret-key
+FLASK_DEBUG=True
+SQLALCHEMY_DATABASE_URI=sqlite:///physiolog.db
+```
+
+Ensure your `.env` file is added to `.gitignore` to keep secrets out of version control.
+
+### Production (EC2)
+
+For production environments, set environment variables directly:
+
+```bash
+export SECRET_KEY="production-secret"
+export FLASK_DEBUG="False"
+export SQLALCHEMY_DATABASE_URI="postgresql://user:password@db-endpoint:5432/physiolog"
+```
+
+Or pass them to Gunicorn:
+
+```bash
+SECRET_KEY="production-secret" FLASK_DEBUG="False" uv run gunicorn app:app -w 2 -b 0.0.0.0:8000
+```
+
+## �🔧 Common Commands
 
 ### Run the Application
 
