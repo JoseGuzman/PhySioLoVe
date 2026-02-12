@@ -89,7 +89,7 @@ def index():
 
 @app.route("/overview")
 def overview():
-    """Overview page with stats and data entry form"""
+    """Overview page with metabolism stats and input entry form"""
     return render_template("overview.html")
 
 
@@ -114,7 +114,6 @@ def coach():
 def test():
     """To test html rendering and API connectivity"""
     return render_template("test.html")
-
 
 
 # =========================================================================
