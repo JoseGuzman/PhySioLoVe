@@ -113,11 +113,12 @@ def stats() -> Response | tuple[Response, int]:
 
     Optional query parameters:
         days (int): if provided, restrict to the last N days of entries (default: all)
-        Example: /api/stats?days=7
+        Example: /api/stats?days=7 or /api/stats?window=7d 30d 3m 1y
 
     Response:
     Example response for /api/stats?days=7:
     {
+        "window": "7d",
         "window_days": 7,
         "start_date": "2026-02-07",
         "end_date": "2026-02-13",
@@ -131,30 +132,56 @@ def stats() -> Response | tuple[Response, int]:
             }
         }
     """
-
+    # recognize days=7
     days_param = request.args.get("days", type=int)
+    # window can be: "", "7d", "30d", "3m", "1y", or omitted
+    window = request.args.get("window", default="", type=str).lower().strip()
+
+    def window_to_days(window_str: str) -> int | None:
+        s = window_str.strip().lower()
+        if not s:
+            return None
+        if s.endswith("d"):
+            return int(s[:-1])
+        if s.endswith("m"):
+            return int(s[:-1]) * 30
+        if s.endswith("y"):
+            return int(s[:-1]) * 365
+        raise ValueError("Invalid window format")
+
+    # Decide days
+    days = None
+    if days_param is not None:
+        if days_param <= 0:
+            return jsonify({"error": "days must be a positive integer"}), 400
+        days = days_param
+    elif window:  # window provided and not empty
+        try:
+            days = window_to_days(window)
+        except (ValueError, TypeError):
+            return jsonify({"error": "format is 7d,30d,3m,1y"}), 400
+    else:
+        days = None  # all time
 
     query = HealthEntry.query.order_by(HealthEntry.date.desc())
 
     start_date = None
+    end_date = date.today()
 
-    if days_param is not None:
-        if days_param <= 0:
-            return jsonify({"error": "days must be a positive integer"}), 400
-
-        start_date = date.today() - timedelta(days=days_param - 1)
+    if days is not None:
+        start_date = end_date - timedelta(days=days - 1)
         query = query.filter(HealthEntry.date >= start_date)
 
     entries = query.all()
-
     if not entries:
         return jsonify({"error": "No data available"}), 404
 
     return jsonify(
         {
-            "window_days": days_param,
+            "window": window or "all",
+            "window_days": days,
             "start_date": start_date.isoformat() if start_date else None,
-            "end_date": date.today().isoformat(),
+            "end_date": end_date.isoformat(),
             "stats": compute_stats(entries),
         }
     )

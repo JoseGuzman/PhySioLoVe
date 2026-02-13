@@ -1,77 +1,163 @@
 // static/js/dashboard.js
-// this here is to match Plottly background to chart background 
+
+// -----------------------------
+// Small DOM helpers (page-safe)
+// -----------------------------
+function $(id) {
+    return document.getElementById(id);
+}
+
+function hasAnyElement(ids) {
+    return ids.some((id) => $(id));
+}
+
+// -----------------------------
+// Fetch helper
+// -----------------------------
+async function fetchJson(url, options) {
+    const res = await fetch(url, options);
+    if (!res.ok) {
+        const text = await res.text().catch(() => "");
+        throw new Error(`${url} failed: ${res.status} ${res.statusText} ${text}`);
+    }
+    return res.json();
+}
+
+// -----------------------------
+// Trends stats panel (trends.html)
+// -----------------------------
+const TRENDS_STAT_FIELDS = ["avg_weight", "avg_body_fat", "avg_calories", "avg_steps", "avg_sleep"];
+
+function getSelectedWindowValue() {
+    const sel = $("windowSelect");
+    if (!sel) return null;
+    // trends.html uses "" for all-time (per your description)
+    return sel.value ?? "";
+}
+
+function formatStatValue(v) {
+    if (v === null || v === undefined) return "--";
+    if (typeof v === "number" && Number.isFinite(v)) return v.toFixed(2);
+    return String(v);
+}
+
+function renderTrendsStats(payload) {
+    // Expected payload: { window_days, start_date, end_date, stats: {...} }
+    const stats = payload?.stats;
+    if (!stats) return;
+
+    for (const key of TRENDS_STAT_FIELDS) {
+        const el = $(`stat-${key}`);
+        if (!el) continue;
+        el.textContent = formatStatValue(stats[key]);
+    }
+
+    const meta = $("windowMeta");
+    if (meta) {
+        const { start_date, end_date, window_days } = payload || {};
+        if (start_date && end_date && window_days) {
+            meta.textContent = `${start_date} → ${end_date} (${window_days} days)`;
+        } else {
+            meta.textContent = "All time";
+        }
+    }
+}
+
+async function fetchStatsPayload(windowValue) {
+    // If windowValue is "" => all-time
+    const hasWindow = windowValue !== null && windowValue !== undefined && windowValue !== "";
+    const url = hasWindow
+        ? `/api/stats?window=${encodeURIComponent(windowValue)}`
+        : "/api/stats";
+
+    return fetchJson(url);
+}
+
+async function loadTrendsStats() {
+    // Only run on trends-like pages
+    const statsGrid = $("statsGrid");
+    const hasTrendsPanel = !!statsGrid || TRENDS_STAT_FIELDS.some((k) => $(`stat-${k}`));
+    if (!hasTrendsPanel) return;
+
+    const windowValue = getSelectedWindowValue();
+
+    try {
+        const payload = await fetchStatsPayload(windowValue);
+        renderTrendsStats(payload);
+    } catch (err) {
+        // If backend returns 404 "No data available", don't explode the UI
+        console.error(err);
+
+        // Best effort: set trends panel to "--"
+        for (const key of TRENDS_STAT_FIELDS) {
+            const el = $(`stat-${key}`);
+            if (el) el.textContent = "--";
+        }
+        const meta = $("windowMeta");
+        if (meta) meta.textContent = "—";
+    }
+}
+
+function wireWindowSelect(onChange) {
+    const sel = $("windowSelect");
+    if (!sel) return;
+
+    sel.addEventListener("change", () => {
+        // keep handler tiny + safe
+        Promise.resolve(onChange?.()).catch((err) => console.error(err));
+    });
+}
+
+// -----------------------------
+// Plotly styling helpers
+// -----------------------------
 function cssVar(name, fallback) {
     const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
     return v || fallback;
 }
 
-const CARD_BG = cssVar('--panel', '#252525');
+const CARD_BG = cssVar("--panel", "#252525");
 
 const BASE_LAYOUT = {
     paper_bgcolor: CARD_BG,
     plot_bgcolor: CARD_BG,
-    font: { color: '#e0e0e0' },
-    hovermode: 'x unified',
+    font: { color: "#e0e0e0" },
+    hovermode: "x unified",
     showlegend: false,
     margin: { t: 20, r: 20, b: 60, l: 60 },
-    xaxis: { gridcolor: '#2e2e2e', zerolinecolor: '#2e2e2e' },
-    yaxis: { gridcolor: '#2e2e2e', zerolinecolor: '#2e2e2e' }
+    xaxis: { gridcolor: "#2e2e2e", zerolinecolor: "#2e2e2e" },
+    yaxis: { gridcolor: "#2e2e2e", zerolinecolor: "#2e2e2e" },
 };
 
-
-// -----------------------------
-// Config constants
-// -----------------------------
 const MYCOLORS = {
-    weight: {
-        dots: '#2dd4bf',   // teal
-        line: '#fb7185',   // rose
-    },
-    fat: {
-        dots: '#38bdf8',   // sky blue
-        line: '#fb923c',   // soft orange
-    },
-
-    steps: {
-        main: '#22c55e',   // emerald
-        line: '#fb7185',   // rose
-    },
-    sleep: {
-        main: '#a78bfa',   // lavender
-        line: '#fb923c',   // soft orange
-    }
+    weight: { dots: "#2dd4bf", line: "#fb7185" },
+    fat: { dots: "#38bdf8", line: "#fb923c" },
+    steps: { main: "#22c55e", line: "#fb7185" },
+    sleep: { main: "#a78bfa", line: "#fb923c" },
 };
-const CHART_IDS = ['weightChart', 'bodyFatChart', 'stepsChart', 'sleepChart'];
 
-
+const CHART_IDS = ["weightChart", "bodyFatChart", "stepsChart", "sleepChart"];
 
 const PLOTLY_CONFIG = {
     responsive: true,
     displaylogo: false,
     scrollZoom: false,
-    modeBarButtonsToRemove: ['lasso2d', 'select2d'],
+    modeBarButtonsToRemove: ["lasso2d", "select2d"],
 };
 
-// Store latest date so global range buttons anchor correctly
 let LATEST_DATE_ISO = null;
 
 // -----------------------------
-// Utilities
+// Chart utilities
 // -----------------------------
-/**
- * HEX->RGBA to do soft transparency
- */
 function hexToRgba(hex, alpha = 1) {
-    const h = hex.replace('#', '');
+    const h = hex.replace("#", "");
     const r = parseInt(h.slice(0, 2), 16);
     const g = parseInt(h.slice(2, 4), 16);
     const b = parseInt(h.slice(4, 6), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-/**
- * Calculates moving average over numeric array.
- */
 function calculateMovingAverage(data, windowSize = 7) {
     const result = [];
     for (let i = 0; i < data.length; i++) {
@@ -79,7 +165,7 @@ function calculateMovingAverage(data, windowSize = 7) {
             result.push(null);
             continue;
         }
-        const window = data.slice(i - windowSize + 1, i + 1).filter(v => v != null);
+        const window = data.slice(i - windowSize + 1, i + 1).filter((v) => v != null);
         if (window.length === 0) {
             result.push(null);
             continue;
@@ -89,117 +175,104 @@ function calculateMovingAverage(data, windowSize = 7) {
     }
     return result;
 }
-/**
- * Creates a standardized x-axis configuration for time-series charts.
- *
- * @param {number} angle - Rotation angle for tick labels (default: -45).
- * @returns {Object} Plotly x-axis configuration object.
- */
+
 function makeXAxis(angle = -45) {
-    return {
-        type: 'date',
-        tickangle: angle
-    };
+    return { type: "date", tickangle: angle };
 }
 
-async function fetchJson(url, options) {
-    const res = await fetch(url, options);
-    if (!res.ok) {
-        const text = await res.text().catch(() => '');
-        throw new Error(`${url} failed: ${res.status} ${res.statusText} ${text}`);
-    }
-    return res.json();
-}
-
-function hasAnyElement(ids) {
-    return ids.some(id => document.getElementById(id));
-}
-
+// -----------------------------
+// Global range controls (optional)
+// -----------------------------
 function setButtonActive(activeId) {
-    const ids = ['btn30', 'btn90', 'btnAll'];
-    ids.forEach(id => {
-        const el = document.getElementById(id);
+    const ids = ["btn30", "btn90", "btnAll"];
+    ids.forEach((id) => {
+        const el = $(id);
         if (!el) return;
-        el.style.opacity = (id === activeId) ? '1' : '0.7';
-        el.style.transform = (id === activeId) ? 'translateY(-1px)' : 'none';
+        el.style.opacity = id === activeId ? "1" : "0.7";
+        el.style.transform = id === activeId ? "translateY(-1px)" : "none";
     });
 }
 
-// -----------------------------
-// Global range controls
-// -----------------------------
 function setGlobalRange(days) {
     if (!hasAnyElement(CHART_IDS)) return;
     if (!LATEST_DATE_ISO) return;
 
     if (days == null) {
-        // All
-        CHART_IDS.forEach(id => {
-            if (document.getElementById(id)) {
-                Plotly.relayout(id, { 'xaxis.autorange': true });
-            }
+        CHART_IDS.forEach((id) => {
+            if ($(id)) Plotly.relayout(id, { "xaxis.autorange": true });
         });
-        setButtonActive('btnAll');
+        setButtonActive("btnAll");
         return;
     }
 
-    const end = new Date(LATEST_DATE_ISO + 'T00:00:00');
+    const end = new Date(LATEST_DATE_ISO + "T00:00:00");
     const start = new Date(end);
     start.setDate(start.getDate() - days);
 
     const update = {
-        'xaxis.range': [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)]
+        "xaxis.range": [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)],
     };
 
-    CHART_IDS.forEach(id => {
-        if (document.getElementById(id)) {
-            Plotly.relayout(id, update);
-        }
+    CHART_IDS.forEach((id) => {
+        if ($(id)) Plotly.relayout(id, update);
     });
 
-    setButtonActive(days === 30 ? 'btn30' : 'btn90');
+    setButtonActive(days === 30 ? "btn30" : "btn90");
+}
+
+function wireRangeButtons() {
+    const btn30 = $("btn30");
+    const btn90 = $("btn90");
+    const btnAll = $("btnAll");
+
+    if (btn30) btn30.addEventListener("click", () => setGlobalRange(30));
+    if (btn90) btn90.addEventListener("click", () => setGlobalRange(90));
+    if (btnAll) btnAll.addEventListener("click", () => setGlobalRange(null));
 }
 
 // -----------------------------
-// Stats
+// Legacy stats (overview.html - #stats)
 // -----------------------------
-async function loadStats() {
-    const statsEl = document.getElementById('stats');
+function renderLegacyStats(stats) {
+    const statsEl = $("stats");
+    if (!statsEl) return;
+
+    const s = stats || {};
+    statsEl.innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Avg Weight</div>
+      <div class="stat-value">${s.avg_weight ?? "--"} kg</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Body Fat</div>
+      <div class="stat-value">${s.avg_body_fat ?? "--"}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Calories</div>
+      <div class="stat-value">${s.avg_calories ?? "--"}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Steps</div>
+      <div class="stat-value">${s.avg_steps ?? "--"}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Entries</div>
+      <div class="stat-value">${s.total_entries ?? "--"}</div>
+    </div>
+  `;
+}
+
+async function loadLegacyStats() {
+    const statsEl = $("stats");
     if (!statsEl) return;
 
     try {
-        const stats = await fetchJson('/api/stats');
-
-        statsEl.innerHTML = `
-            <div class="stat-card">
-                <div class="stat-label">Avg Weight</div>
-                <div class="stat-value">${stats.avg_weight ?? '--'} kg</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Avg Body Fat</div>
-                <div class="stat-value">${stats.avg_body_fat ?? '--'}%</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Avg Calories</div>
-                <div class="stat-value">${stats.avg_calories ?? '--'}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Avg Steps</div>
-                <div class="stat-value">${stats.avg_steps ?? '--'}</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Total Entries</div>
-                <div class="stat-value">${stats.total_entries ?? '--'}</div>
-            </div>
-        `;
+        const payload = await fetchJson("/api/stats");
+        const stats = payload.stats ?? payload; // support both shapes
+        renderLegacyStats(stats);
     } catch (err) {
         console.error(err);
-        statsEl.innerHTML = `
-            <div class="stat-card">
-                <div class="stat-label">Stats</div>
-                <div class="stat-value">--</div>
-            </div>
-        `;
+        renderLegacyStats(null);
     }
 }
 
@@ -211,7 +284,7 @@ async function loadCharts() {
 
     let entries;
     try {
-        entries = await fetchJson('/api/entries');
+        entries = await fetchJson("/api/entries");
     } catch (err) {
         console.error(err);
         return;
@@ -220,214 +293,183 @@ async function loadCharts() {
     // Sort ascending by date (oldest -> newest)
     entries.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-    const dates = entries.map(e => e.date);
+    const dates = entries.map((e) => e.date);
     if (dates.length) LATEST_DATE_ISO = dates[dates.length - 1];
 
-    // -----------------------------
-    // Weight 
-    // -----------------------------
-    if (document.getElementById('weightChart')) {
-        const weightData = entries.map(e => e.weight);
+    // Weight
+    if ($("weightChart")) {
+        const weightData = entries.map((e) => e.weight);
         const weightMA = calculateMovingAverage(weightData, 7);
 
-        Plotly.react('weightChart', [
+        Plotly.react(
+            "weightChart",
+            [
+                {
+                    x: dates, y: weightData, name: "Daily Weight", type: "scatter", mode: "markers",
+                    marker: { opacity: 0.6, line: { width: 0 }, color: MYCOLORS.weight.dots }
+                },
+                {
+                    x: dates, y: weightMA, name: "7-Day Average", type: "scatter", mode: "lines",
+                    line: { width: 2, color: MYCOLORS.weight.line }
+                },
+            ],
             {
-                x: dates,
-                y: weightData,
-                name: 'Daily Weight',
-                type: 'scatter',
-                mode: 'markers',
-                marker: { opacity: 0.6, line: { width: 0 }, color: MYCOLORS.weight.dots }
+                ...BASE_LAYOUT,
+                yaxis: { title: "Weight (kg)", gridcolor: "#333", tickcolor: "#888", linecolor: "#888" },
+                xaxis: { ...makeXAxis(-30), gridcolor: "#333" },
+                hovermode: "x unified",
             },
-            {
-                x: dates,
-                y: weightMA,
-                name: '7-Day Average',
-                type: 'scatter',
-                mode: 'lines',
-                line: { width: 2, color: MYCOLORS.weight.line }
-            }
-        ], {
-            ...BASE_LAYOUT,
-            yaxis: {
-                title: 'Weight (kg)', gridcolor: '#333',
-                tickcolor: '#888',
-                linecolor: '#888'
-            },
-            xaxis: {
-                ...makeXAxis(-30), gridcolor: '#333',
-            },
-            hovermode: 'x unified',
-        }, PLOTLY_CONFIG);
+            PLOTLY_CONFIG
+        );
     }
 
-    // -----------------------------
     // Body fat
-    // -----------------------------
-    if (document.getElementById('bodyFatChart')) {
-        const bfData = entries.map(e => e.body_fat);
+    if ($("bodyFatChart")) {
+        const bfData = entries.map((e) => e.body_fat);
         const bfMA = calculateMovingAverage(bfData, 7);
 
-        Plotly.react('bodyFatChart', [
+        Plotly.react(
+            "bodyFatChart",
+            [
+                {
+                    x: dates, y: bfData, name: "Daily Body Fat", type: "scatter", mode: "markers",
+                    marker: { opacity: 0.6, line: { width: 0 }, color: MYCOLORS.fat.dots }
+                },
+                {
+                    x: dates, y: bfMA, name: "7-Day Average", type: "scatter", mode: "lines",
+                    line: { width: 2, color: MYCOLORS.fat.line }
+                },
+            ],
             {
-                x: dates,
-                y: bfData,
-                name: 'Daily Body Fat',
-                type: 'scatter',
-                mode: 'markers',
-                marker: { opacity: 0.6, line: { width: 0 }, color: MYCOLORS.fat.dots }
+                ...BASE_LAYOUT,
+                yaxis: { title: "Body Fat (%)", tickcolor: "#888", linecolor: "#888", gridcolor: "#333" },
+                xaxis: { ...makeXAxis(-30), gridcolor: "#333" },
+                hovermode: "x unified",
             },
-            {
-                x: dates,
-                y: bfMA,
-                name: '7-Day Average',
-                type: 'scatter',
-                line: { width: 2, color: MYCOLORS.fat.line }
-            }
-        ], {
-            ...BASE_LAYOUT,
-            yaxis: { title: 'Body Fat (%)', tickcolor: '#888', linecolor: '#888', gridcolor: '#333' },
-            xaxis: { ...makeXAxis(-30), gridcolor: '#333' },
-            hovermode: 'x unified',
-        }, PLOTLY_CONFIG);
+            PLOTLY_CONFIG
+        );
     }
 
-    // -----------------------------
     // Steps
-    // -----------------------------
-    if (document.getElementById('stepsChart')) {
-        const stepsData = entries.map(e => e.steps);
+    if ($("stepsChart")) {
+        const stepsData = entries.map((e) => e.steps);
         const stepsMA = calculateMovingAverage(stepsData, 7);
 
-        Plotly.react('stepsChart', [
-            {
-                x: dates,
-                y: stepsData,
-                name: 'Daily Steps',
-                type: 'bar',
-                marker: {
-                    color: hexToRgba(MYCOLORS.steps.main, 0.35), // ✅ soft fill
-                    line: { width: 0 }                           // ✅ no harsh edges
+        Plotly.react(
+            "stepsChart",
+            [
+                {
+                    x: dates, y: stepsData, name: "Daily Steps", type: "bar",
+                    marker: { color: hexToRgba(MYCOLORS.steps.main, 0.35), line: { width: 0 } },
+                    hovertemplate: "%{x}<br>Steps: %{y}<extra></extra>"
                 },
-                hovertemplate: '%{x}<br>Steps: %{y}<extra></extra>'
-            },
+                {
+                    x: dates, y: stepsMA, name: "7-Day Average", type: "scatter", mode: "lines",
+                    line: { width: 2, color: MYCOLORS.steps.line }
+                },
+            ],
             {
-                x: dates,
-                y: stepsMA,
-                name: '7-Day Average',
-                type: 'scatter',
-                mode: 'lines',
-                line: { width: 2, color: MYCOLORS.steps.line }
-            }
-        ], {
-            ...BASE_LAYOUT,
-            bargap: 0.15,
-            yaxis: { title: 'Steps', linecolor: '#888', tickcolor: '#888' },
-            xaxis: { ...makeXAxis(-30), linecolor: '#888', tickcolor: '#888' },
-        }, PLOTLY_CONFIG);
+                ...BASE_LAYOUT,
+                bargap: 0.15,
+                yaxis: { title: "Steps", linecolor: "#888", tickcolor: "#888" },
+                xaxis: { ...makeXAxis(-30), linecolor: "#888", tickcolor: "#888" },
+            },
+            PLOTLY_CONFIG
+        );
     }
 
-    // -----------------------------
     // Sleep
-    // -----------------------------
-    if (document.getElementById('sleepChart')) {
-        const sleepData = entries.map(e => e.sleep_total);
+    if ($("sleepChart")) {
+        const sleepData = entries.map((e) => e.sleep_total);
         const sleepMA = calculateMovingAverage(sleepData, 7);
 
-        Plotly.react('sleepChart', [
-            {
-                x: dates,
-                y: sleepData,
-                name: 'Daily Sleep',
-                type: 'bar',
-                marker: {
-                    color: hexToRgba(MYCOLORS.sleep.main, 0.35),
-                    line: { width: 0 }
+        Plotly.react(
+            "sleepChart",
+            [
+                {
+                    x: dates, y: sleepData, name: "Daily Sleep", type: "bar",
+                    marker: { color: hexToRgba(MYCOLORS.sleep.main, 0.35), line: { width: 0 } },
+                    hovertemplate: "%{x}<br>Sleep: %{y:.1f} h<extra></extra>"
                 },
-                hovertemplate: '%{x}<br>Sleep: %{y:.1f} h<extra></extra>'
-            },
+                {
+                    x: dates, y: sleepMA, name: "7-Day Average", type: "scatter", mode: "lines",
+                    line: { width: 2, color: MYCOLORS.sleep.line }
+                },
+            ],
             {
-                x: dates,
-                y: sleepMA,
-                name: '7-Day Average',
-                type: 'scatter',
-                mode: 'lines',
-                line: { width: 2, color: MYCOLORS.sleep.line }
-            }
-        ], {
-            ...BASE_LAYOUT,
-            yaxis: { title: 'Sleep (hours)', linecolor: '#888', tickcolor: '#888' },
-            xaxis: { ...makeXAxis(-30), linecolor: '#888', tickcolor: '#888' },
-        }, PLOTLY_CONFIG);
+                ...BASE_LAYOUT,
+                yaxis: { title: "Sleep (hours)", linecolor: "#888", tickcolor: "#888" },
+                xaxis: { ...makeXAxis(-30), linecolor: "#888", tickcolor: "#888" },
+            },
+            PLOTLY_CONFIG
+        );
     }
 }
 
 // -----------------------------
-// Form handling (optional — only if form exists)
+// Form handling (only if form exists)
 // -----------------------------
 function wireEntryForm() {
-    const form = document.getElementById('entryForm');
+    const form = $("entryForm");
     if (!form) return;
 
-    form.addEventListener('submit', async (e) => {
+    form.addEventListener("submit", async (e) => {
         e.preventDefault();
 
         const data = {
-            date: document.getElementById('date')?.value,
-            weight: parseFloat(document.getElementById('weight')?.value) || null,
-            body_fat: parseFloat(document.getElementById('bodyFat')?.value) || null,
-            calories: parseInt(document.getElementById('calories')?.value) || null,
-            steps: parseInt(document.getElementById('steps')?.value) || null,
-            sleep_total: parseFloat(document.getElementById('sleep')?.value) || null,
+            date: $("date")?.value,
+            weight: parseFloat($("weight")?.value) || null,
+            body_fat: parseFloat($("bodyFat")?.value) || null,
+            calories: parseInt($("calories")?.value) || null,
+            steps: parseInt($("steps")?.value) || null,
+            sleep_total: parseFloat($("sleep")?.value) || null,
         };
 
         try {
-            await fetchJson('/api/entries', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
+            await fetchJson("/api/entries", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data),
             });
 
-            alert('Entry added!');
+            alert("Entry added!");
             form.reset();
-            await loadStats();
+
+            // Reload only what exists on the page
+            await loadLegacyStats();
+            await loadTrendsStats();
             await loadCharts();
 
-            // Keep the current selected range if buttons exist
-            // default to last 90
-            if (document.getElementById('btn90')) setGlobalRange(90);
+            if ($("btn90")) setGlobalRange(90);
         } catch (err) {
             console.error(err);
-            alert('Error adding entry');
+            alert("Error adding entry");
         }
     });
 }
 
 // -----------------------------
-// Global button wiring (optional — only if buttons exist)
+// Init: clear flow + no unnecessary work
 // -----------------------------
-function wireRangeButtons() {
-    const btn30 = document.getElementById('btn30');
-    const btn90 = document.getElementById('btn90');
-    const btnAll = document.getElementById('btnAll');
-
-    if (btn30) btn30.addEventListener('click', () => setGlobalRange(30));
-    if (btn90) btn90.addEventListener('click', () => setGlobalRange(90));
-    if (btnAll) btnAll.addEventListener('click', () => setGlobalRange(null));
-}
-
-// -----------------------------
-// Init
-// -----------------------------
-document.addEventListener('DOMContentLoaded', async () => {
+async function init() {
     wireEntryForm();
     wireRangeButtons();
 
-    await loadStats();
-    await loadCharts();
+    // trends-specific controls
+    wireWindowSelect(async () => {
+        await loadTrendsStats();
+        // (Optional later) also filter charts by window
+    });
+
+    // Load only what the page can show
+    await loadLegacyStats();  // only if #stats exists
+    await loadTrendsStats();  // only if trends stats exist
+    await loadCharts();       // only if any chart exists
 
     // Default view if buttons exist
-    if (document.getElementById('btn90')) {
-        setGlobalRange(90);
-    }
+    if ($("btn90")) setGlobalRange(90);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    Promise.resolve(init()).catch((err) => console.error(err));
 });

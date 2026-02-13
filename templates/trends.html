@@ -24,7 +24,38 @@
     #sleepChart {
         height: 340px;
     }
+
+    /* === Stats panel === */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 14px;
+        margin: 18px 0 24px 0;
+    }
+
+    .stat-card {
+        background: rgba(255, 255, 255, 0.03);
+        border-radius: 12px;
+        padding: 12px 14px;
+    }
+
+    .stat-card .label {
+        display: block;
+        font-size: 0.85rem;
+        opacity: 0.7;
+        margin-bottom: 6px;
+    }
+
+    .stat-card .value {
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
+
+    .controls {
+        margin: 8px 0 16px 0;
+    }
 </style>
+
 {% endblock %}
 
 {% block content %}
@@ -32,6 +63,51 @@
     <h1>Trends</h1>
     <p>Daily trends together with a weekly average (continuous line)</p>
 </div>
+<!-- Data controls-->
+<div class="controls" style="margin: 12px 0 18px 0; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+    <label for="windowSelect"><strong>Temporal window:</strong></label>
+    <select id="windowSelect">
+        <option value="7d">Last 7 days</option>
+        <option value="30d" selected>Last 30 days</option>
+        <option value="3m">Last 3 months</option>
+        <option value="1y">Last 12 months</option>
+        <option value="">All time</option>
+    </select>
+
+    <span id="windowMeta" style="opacity:.8;"></span>
+</div>
+
+<!-- Average statistics-->
+<div class="stats-grid" id="statsGrid">
+    <div class="stat-card">
+        <span class="label">Avg Weight (kg)</span>
+        <span class="value" id="stat-avg_weight">--</span>
+    </div>
+
+    <div class="stat-card">
+        <span class="label">Avg Body Fat (%)</span>
+        <span class="value" id="stat-avg_body_fat">--</span>
+    </div>
+
+    <div class="stat-card">
+        <span class="label">Avg Calories (kcal) </span>
+        <span class="value" id="stat-avg_calories">--</span>
+    </div>
+
+    <div class="stat-card">
+        <span class="label">Avg Steps</span>
+        <span class="value" id="stat-avg_steps">--</span>
+    </div>
+
+    <div class="stat-card">
+        <span class="label">Avg Sleep (hours)</span>
+        <span class="value" id="stat-avg_sleep">--</span>
+    </div>
+
+</div>
+
+
+
 
 <div class="charts-grid">
     <div class="chart">
