@@ -28,14 +28,15 @@
             <div class="sidebar-section-title">TRACK</div>
             <ul class="sidebar-menu">
                 <li>
-                    <a href="{{ url_for('overview') }}"
-                        class="{% if request.endpoint == 'overview' %}active{% endif %}">
+                    <a href="{{ url_for('web.overview') }}"
+                        class="{% if request.endpoint == 'web.overview' %}active{% endif %}">
                         <i data-lucide="bar-chart-3" class="icon"></i>
                         <span>Overview</span>
                     </a>
                 </li>
                 <li>
-                    <a href="{{ url_for('trends') }}" class="{% if request.endpoint == 'trends' %}active{% endif %}">
+                    <a href="{{ url_for('web.trends') }}"
+                        class="{% if request.endpoint == 'web.trends' %}active{% endif %}">
                         <i data-lucide="line-chart" class="icon"></i>
                         <span>Trends</span>
                     </a>
@@ -47,13 +48,15 @@
             <div class="sidebar-section-title">MANAGE</div>
             <ul class="sidebar-menu">
                 <li>
-                    <a href="{{ url_for('entry') }}" class="{% if request.endpoint == 'entry' %}active{% endif %}">
+                    <a href="{{ url_for('web.entry') }}"
+                        class="{% if request.endpoint == 'web.entry' %}active{% endif %}">
                         <i data-lucide="pencil" class="icon"></i>
                         <span>Data Entry</span>
                     </a>
                 </li>
                 <li>
-                    <a href="{{ url_for('coach') }}" class="{% if request.endpoint == 'coach' %}active{% endif %}">
+                    <a href="{{ url_for('web.coach') }}"
+                        class="{% if request.endpoint == 'web.coach' %}active{% endif %}">
                         <i data-lucide="sparkles" class="icon"></i>
                         <span>AI Coach</span>
                     </a>
