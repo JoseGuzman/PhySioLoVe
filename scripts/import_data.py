@@ -1,11 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Import health data from CSV/TSV file
 
 Author: Jose Guzman
 Created: Thu Feb  5 09:29:27 CET 2026
 
-Usage: uv run python scripts/import_data.py data/health_data.csv
+Usage:
+  uv run python scripts/import_data.py data/health_data.csv
 """
 
 import sys
@@ -15,49 +16,19 @@ from pathlib import Path
 
 import pandas as pd
 
-from app import HealthEntry, app, db
+# Ensure project root is importable BEFORE importing app modules
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT))
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+from physiolog import create_app
+from physiolog.extensions import db
+from physiolog.models import HealthEntry
 
 
 def parse_time(time_str: str) -> float | None:
     """
-    Parse a time string in 'h:mm[:ss]' format and return total hours in
-    decimal format with an accuracy of 2 floating points.
-
-    Parameters
-    ----------
-    time_str : str
-        Time string in the format 'h:mm' or 'h:mm:ss' (e.g. '2:30', '1:45:20').
-
-    Returns
-    -------
-    float or None
-        Total time in hours, rounded to two decimal places.
-        Returns None for empty, NaN, or placeholder values ('--').
-
-    Raises
-    ------
-    ValueError
-        If the input string does not match the expected time format.
-
-    Examples
-    --------
-    >>> parse_time("2:30")
-    2.5
-    >>> parse_time("1:15:00")
-    1.25
-    >>> parse_time("--")
-    None
-    >>> parse_time("2:60")
-    Traceback (most recent call last):
-    ...
-    ValueError: Invalid time format: '2:60'. Expected 'h:mm[:ss]'
-    >>> parse_time("2:30:61")
-    Traceback (most recent call last):
-    ...
-    ValueError: Invalid time format: '2:30:61'. Expected 'h:mm[:ss]'
+    Parse a time string in 'h:mm[:ss]' format and return total hours in decimal format.
+    Returns None for empty, NaN, or placeholder values ('--').
     """
     if time_str is None or pd.isna(time_str):
         return None
@@ -66,76 +37,54 @@ def parse_time(time_str: str) -> float | None:
         raise TypeError(f"Expected string, got {type(time_str).__name__}")
 
     time_str = time_str.strip()
-
-    if time_str == "" or time_str == "--":
+    if time_str in ("", "--"):
         return None
+
+    parts = time_str.split(":")
+    if len(parts) < 2:
+        raise ValueError(f"Invalid time format: {time_str!r}. Expected 'h:mm[:ss]'")
+
     try:
-        # time_str is guaranteed to be string already here
-        parts = time_str.split(":")
-
-        if len(parts) < 2:
-            raise ValueError(f"Invalid time format: {time_str!r}. Expected 'h:mm[:ss]'")
-
         hours = int(parts[0])
         minutes = int(parts[1])
         seconds = int(parts[2]) if len(parts) == 3 else 0
-
-        # check proper time guarantees
-        if 0 < hours > 24:
-            raise ValueError("Hours cannot be negative")
-        if 0 <= minutes >= 60:
-            raise ValueError("Minutes must be between 0 and 59")
-        if 0 <= seconds >= 60:
-            raise ValueError("Seconds must be between 0 and 59")
-
-        return round(hours + minutes / 60 + seconds / 3600, 2)  # when everything works
-
-    # catch 2: or 2:xx, to provide info on format
     except ValueError as exc:
         raise ValueError(
             f"Invalid time format: {time_str!r}. Expected 'h:mm[:ss]'"
         ) from exc
 
+    # Proper range checks
+    if hours < 0 or hours > 24:
+        raise ValueError(
+            f"Invalid time format: {time_str!r}. Hours must be between 0 and 24"
+        )
+    if minutes < 0 or minutes >= 60:
+        raise ValueError(
+            f"Invalid time format: {time_str!r}. Minutes must be between 0 and 59"
+        )
+    if seconds < 0 or seconds >= 60:
+        raise ValueError(
+            f"Invalid time format: {time_str!r}. Seconds must be between 0 and 59"
+        )
 
-def parse_number(value: str) -> float | None:
+    return round(hours + minutes / 60 + seconds / 3600, 2)
+
+
+def parse_number(value) -> float | None:
     """
-    Parse number with comma as decimal separator
-
-    Parameters
-    ----------
-    value : str
-        Number string in the format (e.g. '2,30' or '2,30').
-
-    Returns
-    -------
-    float or None
-        The number as floating point
-        Returns None for empty, NaN, or placeholder values ('--').
-
-    Raises
-    ------
-    ValueError
-        If the input string does not match the expected time format.
-
-    Examples
-    --------
-    >>> parse_number('2.3')
-    2.3
-
+    Parse number with comma as decimal separator.
+    Returns None for empty/NaN/'--'.
     """
-
-    if pd.isna(value) or value == "--" or value == "":
+    if value is None or pd.isna(value) or value == "--" or value == "":
         return None
     try:
         return float(str(value).replace(",", "."))
     except ValueError as exc:
-        msg = f"{value!r} invalid argument; expected number, got {type(value).__name__}"
+        msg = f"{value!r} invalid argument; expected number"
         raise ValueError(msg) from exc
 
-    return None
 
-
-def parse_date(date_str: str) -> Date | None:
+def parse_date(date_str) -> Date | None:
     """
     Parse a date string in common formats and return a `date`.
 
@@ -147,56 +96,31 @@ def parse_date(date_str: str) -> Date | None:
 
     Returns None for NaN/empty/placeholder values or if parsing fails.
     """
-    if pd.isna(date_str) or date_str == "--" or date_str == "":
+    if date_str is None or pd.isna(date_str) or date_str == "--" or date_str == "":
         return None
 
-    # Try different date formats
     formats = ["%d/%m/%Y", "%Y-%m-%d", "%m/%d/%Y", "%d-%m-%Y"]
+    s = str(date_str).strip()
     for fmt in formats:
         try:
-            return datetime.strptime(str(date_str).strip(), fmt).date()
+            return datetime.strptime(s, fmt).date()
         except ValueError:
             continue
     return None
 
 
-def import_data(filepath: str) -> float | None:
+def import_data(app, filepath: str) -> None:
     """
     Imports health data from a CSV or TSV file into the database.
-    The file should have a 'Date' column and may include columns for
-    weight, body fat percentage, calories, steps, sleep total, sleep quality,
-    and observations. The function will attempt to map columns based on common keywords.
-
-    Parameters
-    ----------
-    filepath : str
-        The path to the CSV or TSV file containing health data.
-
-    Returns
-    -------
-    float or None
-        Total time in hours, rounded to two decimal places.
-        Returns None for empty, NaN, or placeholder values ('--').
-
-    Raises
-    ------
-    ValueError
-        If the input string does not match the expected time format.
     """
-
-    # Import data from CSV/TSV file
     print(f"\n📊 Importing data from {filepath}...")
 
-    # Detect separator (CSV or TSV)
-    sep = "t" if filepath.endswith(".tsv") else ","
-    # Read file
+    sep = "\t" if filepath.endswith(".tsv") else ","
     df = pd.read_csv(filepath, sep=sep, encoding="utf-8")
 
-    # Print column names to help debug
     print(f"\n📋 Found columns: {list(df.columns)}\n")
 
-    # Map column names (handle variations)
-    column_map = {}
+    column_map: dict[str, str] = {}
     for col in df.columns:
         col_lower = col.lower().strip()
         if "date" in col_lower:
@@ -209,11 +133,15 @@ def import_data(filepath: str) -> float | None:
             column_map["calories"] = col
         elif "step" in col_lower:
             column_map["steps"] = col
-        elif "sleep total" in col_lower:
+        elif "sleep total" in col_lower or (
+            ("sleep" in col_lower) and ("total" in col_lower)
+        ):
             column_map["sleep_total"] = col
-        elif "sleep quality" in col_lower:
+        elif "sleep quality" in col_lower or (
+            ("sleep" in col_lower) and ("quality" in col_lower)
+        ):
             column_map["sleep_quality"] = col
-        elif "observation" in col_lower:
+        elif "observation" in col_lower or "notes" in col_lower:
             column_map["observations"] = col
 
     print(f"📌 Mapped columns: {column_map}\n")
@@ -227,40 +155,42 @@ def import_data(filepath: str) -> float | None:
     skipped = 0
     errors = 0
 
-    # Initalize database tables if they don't exits
     with app.app_context():
         db.create_all()
 
         for idx, row in df.iterrows():
             try:
-                date = parse_date(row[column_map["date"]])
-                if not date:
+                entry_date = parse_date(row[column_map["date"]])
+                if not entry_date:
                     errors += 1
                     continue
 
-                # Check if entry exists
-                existing = HealthEntry.query.filter_by(date=date).first()
+                existing = HealthEntry.query.filter_by(date=entry_date).first()
                 if existing:
                     skipped += 1
                     continue
 
-                # Create new entry
+                calories_val = (
+                    parse_number(row.get(column_map.get("calories")))
+                    if "calories" in column_map
+                    else None
+                )
+                steps_val = (
+                    parse_number(row.get(column_map.get("steps")))
+                    if "steps" in column_map
+                    else None
+                )
+
                 entry = HealthEntry(
-                    date=date,
+                    date=entry_date,
                     weight=parse_number(row.get(column_map.get("weight")))
                     if "weight" in column_map
                     else None,
                     body_fat=parse_number(row.get(column_map.get("body_fat")))
                     if "body_fat" in column_map
                     else None,
-                    calories=int(parse_number(row.get(column_map.get("calories"))))
-                    if "calories" in column_map
-                    and parse_number(row.get(column_map.get("calories")))
-                    else None,
-                    steps=int(parse_number(row.get(column_map.get("steps"))))
-                    if "steps" in column_map
-                    and parse_number(row.get(column_map.get("steps")))
-                    else None,
+                    calories=int(calories_val) if calories_val is not None else None,
+                    steps=int(steps_val) if steps_val is not None else None,
                     sleep_total=parse_time(row.get(column_map.get("sleep_total")))
                     if "sleep_total" in column_map
                     else None,
@@ -280,7 +210,7 @@ def import_data(filepath: str) -> float | None:
 
             except Exception as e:
                 errors += 1
-                print(f"⚠️  Error on row {idx + 1}: {e}")  # type: ignore
+                print(f"⚠️  Error on row {idx + 1}: {e}")
                 continue
 
         db.session.commit()
@@ -290,7 +220,6 @@ def import_data(filepath: str) -> float | None:
     print(f"  • Added: {added} entries")
     print(f"  • Skipped: {skipped} entries (already exist)")
     print(f"  • Errors: {errors} entries (invalid data)")
-
     print(f"  • Total in database: {total}\n")
 
 
@@ -305,4 +234,5 @@ if __name__ == "__main__":
         print(f"Error: File '{myfilepath}' not found")
         sys.exit(1)
 
-    import_data(filepath=myfilepath)
+    app = create_app()
+    import_data(app=app, filepath=myfilepath)
