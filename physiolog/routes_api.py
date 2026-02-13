@@ -6,7 +6,7 @@ It defines the API routes for the PhySioLog Flask application.
 Author: Jose Guzman, sjm.guzman<at>gmail.com
 """
 
-from datetime import datetime
+from datetime import date, datetime, timedelta
 
 from flask import Blueprint, Response, jsonify, request
 from sqlalchemy.exc import IntegrityError
@@ -108,10 +108,53 @@ def entries() -> Response | tuple[Response, int]:
 
 @api_bp.route("/stats")
 def stats() -> Response | tuple[Response, int]:
-    """Calculate statistics"""
-    entries = HealthEntry.query.all()
+    """
+    Return aggregated statitistics for health entries.
+
+    Optional query parameters:
+        days (int): if provided, restrict to the last N days of entries (default: all)
+        Example: /api/stats?days=7
+
+    Response:
+    Example response for /api/stats?days=7:
+    {
+        "window_days": 7,
+        "start_date": "2026-02-07",
+        "end_date": "2026-02-13",
+        "stats": {
+            "avg_weight": 72.14,
+            "avg_body_fat": 18.63,
+            "avg_calories": 2132.5,
+            "avg_steps": 8045.8,
+            "avg_sleep": 7.36,
+            "total_entries": 6
+            }
+        }
+    """
+
+    days_param = request.args.get("days", type=int)
+
+    query = HealthEntry.query.order_by(HealthEntry.date.desc())
+
+    start_date = None
+
+    if days_param is not None:
+        if days_param <= 0:
+            return jsonify({"error": "days must be a positive integer"}), 400
+
+        start_date = date.today() - timedelta(days=days_param - 1)
+        query = query.filter(HealthEntry.date >= start_date)
+
+    entries = query.all()
 
     if not entries:
         return jsonify({"error": "No data available"}), 404
 
-    return jsonify(compute_stats(entries))
+    return jsonify(
+        {
+            "window_days": days_param,
+            "start_date": start_date.isoformat() if start_date else None,
+            "end_date": date.today().isoformat(),
+            "stats": compute_stats(entries),
+        }
+    )
