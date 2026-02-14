@@ -33,7 +33,7 @@ class Config:
     SECRET_KEY = environ.get("SECRET_KEY", "dev-fallback-key")
 
     SQLALCHEMY_DATABASE_URI = environ.get(
-        "SQLALCHEMY_DATABASE_URI", "sqlite:///physiolove.db"
+        "SQLALCHEMY_DATABASE_URI", "sqlite:///physiolog.db"
     )
 
     AUTO_CREATE_DB = environ.get("AUTO_CREATE_DB", "True").lower() == "true"
